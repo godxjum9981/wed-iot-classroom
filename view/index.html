@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page - Smart Classroom</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+        body { display:flex; justify-content:center; align-items:center; min-height:100vh; background:url(eoy.jpg) no-repeat; background-size:cover; background-position:center; }
+        .container { position:relative; width:1100px; height:600px; background:rgba(0,0,0,0.6); display:flex; border-radius:20px; overflow:hidden; backdrop-filter:blur(10px); box-shadow:0 0 30px rgba(0,0,0,0.5); }
+        .content-left { flex:1; padding:50px; color:#fff; display:flex; flex-direction:column; justify-content:space-between; }
+        .logo { font-size:1.5rem; }
+        .text-group h1 { font-size:3rem; margin-bottom:5px; }
+        .text-group h3 { font-size:1.5rem; margin-bottom:15px; }
+        .text-group p  { font-size:0.9rem; line-height:1.6; }
+        .login-box { width:450px; padding:40px; color:#fdf3f3; background:rgba(255,255,255,0.1); }
+        .login-box h2 { font-size:2rem; text-align:center; margin-bottom:60px; }
+        .input-box { position:relative; width:100%; height:50px; border-bottom:2px solid #fff; margin:40px 0; }
+        .input-box label { position:absolute; top:50%; left:5px; transform:translateY(-50%); font-size:1rem; pointer-events:none; transition:.5s; }
+        .input-box input:focus ~ label, .input-box input:valid ~ label { top:-5px; }
+        .input-box input { width:100%; height:100%; background:transparent; border:none; outline:none; font-size:1rem; color:#fff; padding:0 35px 0 5px; }
+        .input-box i { position:absolute; right:8px; font-size:1.2rem; top:50%; transform:translateY(-50%); }
+        .btn { width:100%; height:45px; background:#c01c28; border:none; outline:none; border-radius:5px; cursor:pointer; font-size:1rem; color:#fff; font-weight:600; transition:0.3s; display:flex; align-items:center; justify-content:center; gap:8px; }
+        .btn:hover:not(:disabled) { background:#a01620; }
+        .btn:disabled { opacity:0.7; cursor:not-allowed; }
+        .typing::after { content:"|"; margin-left:5px; animation:blink 2s infinite; font-weight:300; }
+        @keyframes blink { 0%,50%,100%{opacity:1} 25%,75%{opacity:0} }
+        .error-msg { color:#ff6b6b; font-size:0.82rem; margin:-26px 0 14px 5px; display:none; align-items:center; gap:6px; }
+        .error-msg.show { display:flex; }
+        .spin { display:none; width:15px; height:15px; border:2px solid rgba(255,255,255,0.35); border-top-color:#fff; border-radius:50%; animation:_spin 0.7s linear infinite; }
+        @keyframes _spin { to{transform:rotate(360deg)} }
+        .btn.loading .spin    { display:inline-block; }
+        .btn.loading .btn-txt { display:none; }
+
+        /* ── input ตัวหนังสือมองเห็นชัด ── */
+        .input-box input { color:#fff !important; caret-color:#fff; }
+        .input-box label { color:rgba(255,255,255,0.8); }
+        .input-box i     { color:rgba(255,255,255,0.7); }
+
+        /* ── แก้ autofill browser ── */
+        .input-box input:-webkit-autofill,
+        .input-box input:-webkit-autofill:hover,
+        .input-box input:-webkit-autofill:focus,
+        .input-box input:-webkit-autofill:active {
+            -webkit-text-fill-color: #fff !important;
+            -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+            background-color: transparent !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="content-left">
+        <h2 class="logo">Smart Classroom Dashboard</h2>
+        <div class="text-group">
+            <h1 id="byax" class="typing"></h1>
+            <h3>To Our New Website.</h3>
+            <p>Smart Classroom — Learning Beyond the Future.</p>
+        </div>
+    </div>
+    <div class="login-box">
+        <form onsubmit="doLogin(event)" novalidate>
+            <h2>Login</h2>
+            <div class="input-box">
+                <input type="text" id="username" required>
+                <label>Username</label>
+                <i class="fa-solid fa-envelope"></i>
+            </div>
+            <div class="input-box">
+                <input type="password" id="password" required>
+                <label>Password</label>
+                <i class="fa-solid fa-eye" id="togglePwd" onclick="togglePassword()" style="cursor:pointer;"></i>
+            </div>
+            <div class="error-msg" id="errorMsg">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="errorText"></span>
+            </div>
+            <button type="submit" class="btn" id="loginBtn">
+                <div class="spin"></div>
+                <span class="btn-txt">Login</span>
+            </button>
+        </form>
+    </div>
+</div>
+<script>
+// ── ถ้า login อยู่แล้ว → ไป dashboard ───────────────────────────────────
+if (localStorage.getItem('token')) {
+    window.location.href = 'dashboard.html';
+}
+
+// ── Typing effect ─────────────────────────────────────────────────────────
+const el = document.getElementById("byax");
+if (el) {
+    const text = "Welcome!";
+    let i = 0, del = false, started = false;
+    const obs = new IntersectionObserver(e => {
+        if (e[0].isIntersecting && !started) { started = true; type(); }
+    });
+    obs.observe(el);
+    function type() {
+        el.textContent = text.slice(0, i);
+        if (!del && i < text.length)  i++;
+        else if (!del)                setTimeout(() => del = true, 1200);
+        else if (i > 0)               i--;
+        else                          del = false;
+        setTimeout(type, del ? 80 : 120);
+    }
+}
+
+// ── Toggle password visibility ───────────────────────────────────────────
+function togglePassword() {
+    const input = document.getElementById('password');
+    const icon  = document.getElementById('togglePwd');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// ── doLogin → POST /api/auth/login ────────────────────────────────────────
+async function doLogin(e) {
+    e.preventDefault();
+    const btn    = document.getElementById('loginBtn');
+    const errMsg = document.getElementById('errorMsg');
+    errMsg.classList.remove('show');
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    try {
+        const res  = await fetch('/api/auth/login', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'username หรือ password ไม่ถูกต้อง');
+
+        // เก็บ token แล้วไป dashboard
+        localStorage.setItem('token',    data.token);
+        localStorage.setItem('user_id',  data.user_id);
+        localStorage.setItem('username', data.username);
+        window.location.href = 'dashboard.html';
+
+    } catch (err) {
+        document.getElementById('errorText').textContent = err.message;
+        errMsg.classList.add('show');
+    } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+    }
+}
+</script>
+</body>
+</html>
